@@ -21,8 +21,6 @@ private:
     vector<vector<double> > m_matrix;
 public:
     Matrix(unsigned, unsigned, double);
-    Matrix(const Matrix &);
-    ~Matrix();
 
     Matrix operator+(Matrix &);
     Matrix operator-(Matrix &);

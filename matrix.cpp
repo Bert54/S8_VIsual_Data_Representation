@@ -105,3 +105,68 @@ void Matrix::print() const
         cout << endl;
     }
 }
+
+// Returns 3 values
+//First: Eigen Vector
+//Second: Eigen Value
+//Third: Flag
+tuple<Matrix, double, int> Matrix::powerIter(unsigned rowNum, double tolerance){
+    // Picks a classic X vector
+    Matrix X(rowNum,1,1.0);
+    // Initiates X vector with values 1,2,3,4
+    for (unsigned i = 1; i <= rowNum; i++) {
+        X(i-1,0) = i;
+    }
+    int errorCode = 0;
+    double difference = 1.0; // Initiall value greater than tolerance
+    unsigned j = 0;
+    unsigned location;
+    // Defined to find the value between last two eigen values
+    vector<double> eigen;
+    double eigenvalue = 0.0;
+    eigen.push_back(0.0);
+
+    while(abs(difference) > tolerance) // breaks out when reached tolerance
+    {
+        j++;
+        // Normalize X vector with infinite norm
+        for (int i = 0; i < rowNum; ++i)
+        {
+            eigenvalue = X(0,0);
+            if (abs(X(i,0)) >= abs(eigenvalue))
+            {
+                // Take the value of the infinite norm as your eigenvalue
+                eigenvalue = X(i,0);
+                location = i;
+            }
+        }
+        if (j >= 5e5) {
+            cout << "Oops, that was a nasty complex number wasn't it?" << endl;
+            cout << "ERROR! Returning code black, code black!";
+            errorCode = -1;
+            return make_tuple(X,0.0,errorCode);
+        }
+        eigen.push_back(eigenvalue);
+        difference = eigen[j] - eigen[j-1];
+        // Normalize X vector with its infinite norm
+        X = X / eigenvalue;
+
+        // Multiply The matrix with X vector
+        X = (*this) * X;
+    }
+
+    // Take the X vector and what you've found is an eigenvector!
+    X = X / eigenvalue;
+    return make_tuple(X,eigenvalue,errorCode);
+}
+
+Matrix Matrix::deflation(Matrix &X, double &eigenvalue)
+{
+    // Deflation formula exactly applied
+    double denominator = eigenvalue / (X.transpose() * X)(0,0);
+    Matrix Xtrans = X.transpose();
+    Matrix RHS = (X * Xtrans);
+    Matrix RHS2 = RHS * denominator;
+    Matrix A2 = *this - RHS2;
+    return A2;
+}
