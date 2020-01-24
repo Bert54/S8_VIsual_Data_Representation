@@ -84,7 +84,16 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/geometry.h">
+			<Option target="Projet"/>
+		</Unit>
 		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/main.cpp">
+			<Option target="Projet"/>
+		</Unit>
+		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/matrix.cpp">
+			<Option target="Projet"/>
+		</Unit>
+		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/matrix.h">
 			<Option target="Projet"/>
 		</Unit>
 		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/CMakeLists.txt">

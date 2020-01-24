@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/kyunichi/Work/University/S8/RDV/Projet/geometry.h
+cmath
+-
+vector
+-
+cassert
+-
+iostream
+-
+
+/home/kyunichi/Work/University/S8/RDV/Projet/main.cpp
+iostream
+-
+geometry.h
+/home/kyunichi/Work/University/S8/RDV/Projet/geometry.h
+
