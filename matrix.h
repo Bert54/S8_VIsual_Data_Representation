@@ -21,9 +21,24 @@ private:
     vector<vector<double> > m_matrix;
 public:
     Matrix(unsigned, unsigned, double);
-    Matrix(const char *);
     Matrix(const Matrix &);
     ~Matrix();
+
+    Matrix operator+(Matrix &);
+    Matrix operator-(Matrix &);
+    Matrix operator*(Matrix &);
+    Matrix transpose();
+
+    double& operator()(const unsigned &, const unsigned &);
+    void print() const;
+    unsigned getRows() const;
+    unsigned getCols() const;
+
+    // Power Iteration
+    tuple<Matrix, double, int> powerIter(unsigned, double);
+
+    // Deflation
+    Matrix deflation(Matrix &, double&);
 
 };
 
