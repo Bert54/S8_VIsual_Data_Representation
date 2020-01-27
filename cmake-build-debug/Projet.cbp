@@ -96,6 +96,12 @@
 		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/matrix.h">
 			<Option target="Projet"/>
 		</Unit>
+		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/softengine.cpp">
+			<Option target="Projet"/>
+		</Unit>
+		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/softengine.h">
+			<Option target="Projet"/>
+		</Unit>
 		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>

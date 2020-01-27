@@ -16,9 +16,35 @@ cassert
 iostream
 -
 
-/home/kyunichi/Work/University/S8/RDV/Projet/main.cpp
+/home/kyunichi/Work/University/S8/RDV/Projet/matrix.h
+stdio.h
+-
 iostream
 -
+stdlib.h
+-
+sstream
+-
+string
+-
+vector
+-
+tuple
+-
+cmath
+-
+
+/home/kyunichi/Work/University/S8/RDV/Projet/softengine.cpp
+fstream
+-
+utility
+-
+softengine.h
+/home/kyunichi/Work/University/S8/RDV/Projet/softengine.h
+matrix.h
+/home/kyunichi/Work/University/S8/RDV/Projet/matrix.h
+
+/home/kyunichi/Work/University/S8/RDV/Projet/softengine.h
 geometry.h
 /home/kyunichi/Work/University/S8/RDV/Projet/geometry.h
 

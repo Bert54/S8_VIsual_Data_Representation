@@ -32,12 +32,6 @@ public:
     unsigned getRows() const;
     unsigned getCols() const;
 
-    // Power Iteration
-    tuple<Matrix, double, int> powerIter(unsigned, double);
-
-    // Deflation
-    Matrix deflation(Matrix &, double&);
-
 };
 
 #endif

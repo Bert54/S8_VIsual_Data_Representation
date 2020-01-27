@@ -177,6 +177,33 @@ matrix.cpp.s:
 	$(MAKE) -f CMakeFiles/Projet.dir/build.make CMakeFiles/Projet.dir/matrix.cpp.s
 .PHONY : matrix.cpp.s
 
+softengine.o: softengine.cpp.o
+
+.PHONY : softengine.o
+
+# target to build an object file
+softengine.cpp.o:
+	$(MAKE) -f CMakeFiles/Projet.dir/build.make CMakeFiles/Projet.dir/softengine.cpp.o
+.PHONY : softengine.cpp.o
+
+softengine.i: softengine.cpp.i
+
+.PHONY : softengine.i
+
+# target to preprocess a source file
+softengine.cpp.i:
+	$(MAKE) -f CMakeFiles/Projet.dir/build.make CMakeFiles/Projet.dir/softengine.cpp.i
+.PHONY : softengine.cpp.i
+
+softengine.s: softengine.cpp.s
+
+.PHONY : softengine.s
+
+# target to generate assembly for a file
+softengine.cpp.s:
+	$(MAKE) -f CMakeFiles/Projet.dir/build.make CMakeFiles/Projet.dir/softengine.cpp.s
+.PHONY : softengine.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -192,6 +219,9 @@ help:
 	@echo "... matrix.o"
 	@echo "... matrix.i"
 	@echo "... matrix.s"
+	@echo "... softengine.o"
+	@echo "... softengine.i"
+	@echo "... softengine.s"
 .PHONY : help
 
 

@@ -3,4 +3,14 @@
 
 CMakeFiles/Projet.dir/main.cpp.o: ../geometry.h
 CMakeFiles/Projet.dir/main.cpp.o: ../main.cpp
+CMakeFiles/Projet.dir/main.cpp.o: ../matrix.h
+CMakeFiles/Projet.dir/main.cpp.o: ../softengine.h
+
+CMakeFiles/Projet.dir/matrix.cpp.o: ../matrix.cpp
+CMakeFiles/Projet.dir/matrix.cpp.o: ../matrix.h
+
+CMakeFiles/Projet.dir/softengine.cpp.o: ../geometry.h
+CMakeFiles/Projet.dir/softengine.cpp.o: ../matrix.h
+CMakeFiles/Projet.dir/softengine.cpp.o: ../softengine.cpp
+CMakeFiles/Projet.dir/softengine.cpp.o: ../softengine.h
 
