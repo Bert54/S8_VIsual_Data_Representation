@@ -1,5 +1,7 @@
 #include <fstream>
 #include <utility>
+#include <iterator>
+#include <cstring>
 #include "softengine.h"
 #include "matrix.h"
 
@@ -18,6 +20,117 @@ Triangle::Triangle(Vec3f v1, Vec3f v2, Vec3f v3) {
 }
 
 Triangle::Triangle() {}
+
+Mesh::Mesh() {
+    rotX = 0.0f;
+    rotZ = 0.0f;
+}
+
+Mesh::Mesh(const char *filename, int method) {
+    if (method == 0) {
+        std::ifstream in;
+        in.open (filename, std::ifstream::in);
+        if (in.fail()) {
+            std::cerr << "Failed to open " << filename << std::endl;
+            return;
+        }
+        std::string line;
+        while (!in.eof()) {
+            std::getline(in, line);
+            std::istringstream iss(line.c_str());
+            char trash;
+            if (!line.compare(0, 2, "v ")) {
+                iss >> trash;
+                Vec3f v;
+                for (int i=0;i<3;i++) iss >> v[i];
+                verts.push_back(v);
+            } else if (!line.compare(0, 2, "f ")) {
+                Vec3i f;
+                int idx, cnt=0;
+                iss >> trash;
+                while (iss >> idx) {
+                    idx--; // in wavefront obj all indices start at 1, not zero
+                    f[cnt++] = idx;
+                }
+                if (3==cnt) faces_n.push_back(f);
+            }
+        }
+        for (Vec3i face: faces_n) {
+            Triangle t = Triangle();
+            t.vertices[0] = verts.at(face.x);
+            t.vertices[1] = verts.at(face.y);
+            t.vertices[2] = verts.at(face.z);
+            polygons.push_back(t);
+        }
+    }
+    else if (method == 1) {
+        std::ifstream in;
+        in.open(filename, std::ifstream::in);
+        if (in.fail()) return;
+        std::string line;
+        while (!in.eof()) {
+            std::getline(in, line);
+            std::istringstream iss(line.c_str());
+            char trash;
+            if (!line.compare(0, 2, "v ")) {
+                iss >> trash;
+                Vec3f v;
+                for (int i = 0; i < 3; i++) iss >> v[i];
+                verts.push_back(v);
+            } else if (!line.compare(0, 3, "vn ")) {
+                iss >> trash >> trash;
+                Vec3f n;
+                for (int i = 0; i < 3; i++) iss >> n[i];
+                norms.push_back(n);
+            } else if (!line.compare(0, 3, "vt ")) {
+                iss >> trash >> trash;
+                Vec2f uvn;
+                for (int i = 0; i < 2; i++) iss >> uvn[i];
+                uv.push_back(uvn);
+            }  else if (!line.compare(0, 2, "f ")) {
+                std::vector<Vec3i> f;
+                Vec3i tmp;
+                iss >> trash;
+                while (iss >> tmp[0] >> trash >> tmp[1] >> trash >> tmp[2]) {
+                    for (int i=0; i<3; i++) tmp[i]--; // in wavefront obj all indices start at 1, not zero
+                    f.push_back(tmp);
+                }
+                faces.push_back(f);
+            }
+        }
+        for (auto faceList: faces)
+        {
+            Triangle t = Triangle();
+            int i = 0;
+            Vec3i p1;
+            Vec3i p2;
+            Vec3i p3;
+            for (auto face: faceList) {
+                if (i == 0) {
+                    p1 = face;
+                }
+                else if (i == 1) {
+                    p2 = face;
+                }
+                else {
+                    p3 = face;
+                }
+                i++;
+            }
+            t.vertices[0] = verts.at(p1.x);
+            t.vertices[1] = verts.at(p2.x);
+            t.vertices[2] = verts.at(p3.x);
+            polygons.push_back(t);
+        }
+    }
+    rotX = 0.0f;
+    rotZ = 0.0f;
+}
+
+void Mesh::setRotation(float rotationX, float rotationZ) {
+    rotX = rotationX;
+    rotZ = rotationZ;
+}
 
 Vec3f scalar_product_vectors_3f(Vec3f lhs, Vec3f rhs) {
     Vec3f result = Vec3f();
@@ -58,22 +171,18 @@ Vec3f MultiplyMatrixVector(Vec3f v, Matrix m)
     return out;
 }
 
-Vec2f DivideVector2fbyValue(Vec2f vec, float value) {
-    vec.x /= value;
-    vec.y /= value;
-    return vec;
-}
-
 void Device::DrawPoint(Vec2f p, Vec3f color) {
-    int index = ((int)p.x + (int)p.y * width);
-    framebuffer[index].x = color.x;
-    framebuffer[index].y = color.y;
-    framebuffer[index].z = color.z;
+    if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
+        int index = ((int) p.x + (int) p.y * width);
+        if (index < width * height) {
+            framebuffer[index].x = color.x;
+            framebuffer[index].y = color.y;
+            framebuffer[index].z = color.z;
+        }
+    }
 }
 
 void Device::DrawLine(Vec2f p1, Vec2f p2, Vec3f color) {
-    DrawPoint(p1, color);
-    DrawPoint(p2, color);
     const bool steep = (fabs(p2.y - p1.y) > fabs(p2.x - p1.x));
     if(steep)
     {
@@ -89,7 +198,6 @@ void Device::DrawLine(Vec2f p1, Vec2f p2, Vec3f color) {
 
     const float dx = p2.x - p1.x;
     const float dy = fabs(p2.y - p1.y);
-
     float error = dx / 2.0f;
     const int ystep = (p1.y < p2.y) ? 1 : -1;
     int y = (int)p1.y;
@@ -122,15 +230,14 @@ void Device::DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
     DrawLine(p1, p3, color);
 }
 
-void Device::render(Camera camera, std::vector<Mesh> meshes) {
+void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
 
     // Projection Matrix
     float fNear = 0.1f;
     float fFar = 1000.0f;
-    float fFov = 70.0f;
+    float fFov = fov;
     float fAspectRatio = (float)height / (float)width;
     float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * M_PI);
-    float fTheta = 0;
     Matrix projectionMatrix = Matrix(4, 4, 0);
     projectionMatrix(0,0) = fAspectRatio * fFovRad;
     projectionMatrix(1,1) = fFovRad;
@@ -140,26 +247,27 @@ void Device::render(Camera camera, std::vector<Mesh> meshes) {
     projectionMatrix(3,3) = 0.0f;
 
     Matrix matRotZ(4, 4, 0), matRotX(4, 4, 0);
-    fTheta += 0.f;
-
-    // Rotation Z
-    matRotZ(0,0) = cosf(fTheta);
-    matRotZ(0,1) = sinf(fTheta);
-    matRotZ(1,0) = -sinf(fTheta);
-    matRotZ(1,1) = cosf(fTheta);
-    matRotZ(2,2) = 1;
-    matRotZ(3,3) = 1;
-
-    // Rotation X
-    matRotX(0,0) = 1;
-    matRotX(1,1) = cosf(fTheta * 0.5f);
-    matRotX(1,2) = sinf(fTheta * 0.5f);
-    matRotX(2,1) = -sinf(fTheta * 0.5f);
-    matRotX(2,2) = cosf(fTheta * 0.5f);
-    matRotX(3,3) = 1;
 
     for (auto mesh : meshes) {
+
+        // Rotation Z
+        matRotZ(0,0) = cosf(mesh.rotZ);
+        matRotZ(0,1) = sinf(mesh.rotZ);
+        matRotZ(1,0) = -sinf(mesh.rotZ);
+        matRotZ(1,1) = cosf(mesh.rotZ);
+        matRotZ(2,2) = 1;
+        matRotZ(3,3) = 1;
+
+        // Rotation X
+        matRotX(0,0) = 1;
+        matRotX(1,1) = cosf(mesh.rotX * 0.5f);
+        matRotX(1,2) = sinf(mesh.rotX * 0.5f);
+        matRotX(2,1) = -sinf(mesh.rotX * 0.5f);
+        matRotX(2,2) = cosf(mesh.rotX * 0.5f);
+        matRotX(3,3) = 1;
+
         for (auto tri : mesh.polygons) {
+
             Triangle projectedTriangle = Triangle();
             Triangle triTranslated, triRotatedZ, triRotatedZX;
 
@@ -196,6 +304,7 @@ void Device::render(Camera camera, std::vector<Mesh> meshes) {
                          Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
                          Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
                          Vec3f(1.f, 1.f, 1.f));
+
         }
     }
     std::ofstream ofs; // save the framebuffer to file
