@@ -284,27 +284,45 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
             triTranslated.vertices[1].z = triRotatedZX.vertices[1].z + 3.0f;
             triTranslated.vertices[2].z = triRotatedZX.vertices[2].z + 3.0f;
 
-            projectedTriangle.vertices[0] = MultiplyMatrixVector(triTranslated.vertices[0], projectionMatrix);
-            projectedTriangle.vertices[1] = MultiplyMatrixVector(triTranslated.vertices[1], projectionMatrix);
-            projectedTriangle.vertices[2] = MultiplyMatrixVector(triTranslated.vertices[2], projectionMatrix);
-            projectedTriangle.vertices[0].x += 1.0f; projectedTriangle.vertices[0].y += 1.0f;
-            projectedTriangle.vertices[1].x += 1.0f; projectedTriangle.vertices[1].y += 1.0f;
-            projectedTriangle.vertices[2].x += 1.0f; projectedTriangle.vertices[2].y += 1.0f;
-            projectedTriangle.vertices[0].x *= 0.5f * (float)width;
-            projectedTriangle.vertices[0].y *= 0.5f * (float)height;
-            projectedTriangle.vertices[1].x *= 0.5f * (float)width;
-            projectedTriangle.vertices[1].y *= 0.5f * (float)height;
-            projectedTriangle.vertices[2].x *= 0.5f * (float)width;
-            projectedTriangle.vertices[2].y *= 0.5f * (float)height;
-            //std::cout << "x: " << projectedTriangle.vertices[0].x << " ; y: " << projectedTriangle.vertices[0].y << "\n";
-            //std::cout << "x: " << projectedTriangle.vertices[1].x << " ; y: " << projectedTriangle.vertices[1].y << "\n";
-            //std::cout << "x: " << projectedTriangle.vertices[2].x << " ; y: " << projectedTriangle.vertices[2].y << "\n";
-            //std::cout << "------------------------\n";
-            DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
-                         Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
-                         Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
-                         Vec3f(1.f, 1.f, 1.f));
+            Vec3f normal, line1, line2;
+            line1 = triTranslated.vertices[1] - triTranslated.vertices[0];
+            line2 = triTranslated.vertices[2] - triTranslated.vertices[0];
 
+            normal.x = line1.y * line2.z - line1.z * line2.y;
+            normal.y = line1.z * line2.x - line1.x * line2.z;
+            normal.z = line1.x * line2.y - line1.y * line2.x;
+
+            float l = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+            normal.x /= l; normal.y /= l; normal.z /= l;
+
+            if (normal.x * (triTranslated.vertices[0].x - camera.position.x) +
+                normal.y * (triTranslated.vertices[0].y - camera.position.y) +
+                normal.z * (triTranslated.vertices[0].z - camera.position.z) < 0.0f) {
+            //if (normal.z < 0) {
+                projectedTriangle.vertices[0] = MultiplyMatrixVector(triTranslated.vertices[0], projectionMatrix);
+                projectedTriangle.vertices[1] = MultiplyMatrixVector(triTranslated.vertices[1], projectionMatrix);
+                projectedTriangle.vertices[2] = MultiplyMatrixVector(triTranslated.vertices[2], projectionMatrix);
+                projectedTriangle.vertices[0].x += 1.0f;
+                projectedTriangle.vertices[0].y += 1.0f;
+                projectedTriangle.vertices[1].x += 1.0f;
+                projectedTriangle.vertices[1].y += 1.0f;
+                projectedTriangle.vertices[2].x += 1.0f;
+                projectedTriangle.vertices[2].y += 1.0f;
+                projectedTriangle.vertices[0].x *= 0.5f * (float) width;
+                projectedTriangle.vertices[0].y *= 0.5f * (float) height;
+                projectedTriangle.vertices[1].x *= 0.5f * (float) width;
+                projectedTriangle.vertices[1].y *= 0.5f * (float) height;
+                projectedTriangle.vertices[2].x *= 0.5f * (float) width;
+                projectedTriangle.vertices[2].y *= 0.5f * (float) height;
+                //std::cout << "x: " << projectedTriangle.vertices[0].x << " ; y: " << projectedTriangle.vertices[0].y << "\n";
+                //std::cout << "x: " << projectedTriangle.vertices[1].x << " ; y: " << projectedTriangle.vertices[1].y << "\n";
+                //std::cout << "x: " << projectedTriangle.vertices[2].x << " ; y: " << projectedTriangle.vertices[2].y << "\n";
+                //std::cout << "------------------------\n";
+                DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
+                             Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
+                             Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
+                             Vec3f(1.f, 1.f, 1.f));
+            }
         }
     }
     std::ofstream ofs; // save the framebuffer to file

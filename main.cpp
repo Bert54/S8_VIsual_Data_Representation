@@ -28,8 +28,8 @@ int main() {
     //meshes.push_back(mesh);
     meshes.push_back(duck);
     meshes.push_back(diablo);
-    camera.position = Vec3f(3.f, 3.f, 3.f);
+    camera.position = Vec3f(0.f, 0.f, 0.f);
     camera.target = Vec3f(0.01f, 0.01f, 0.01f);
-    device.render(camera, meshes, 80.f);
+    device.render(camera, meshes, 90.f);
     return 0;
 }
