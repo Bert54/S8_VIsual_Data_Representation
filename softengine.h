@@ -49,7 +49,9 @@ namespace SoftEngine {
         Device(int, int);
         void DrawPoint(Vec2f p, Vec3f color);
         void DrawLine(Vec2f p1, Vec2f p2, Vec3f color);
+        void ProcessScanLine(int y, Vec2f pa, Vec2f pb, Vec2f pc, Vec2f pd, Vec3f color);
         void DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color);
+        void FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color);
         void render(Camera camera, std::vector<Mesh> meshes, float fov);
 
     };

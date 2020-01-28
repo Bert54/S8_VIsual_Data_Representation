@@ -30,6 +30,6 @@ int main() {
     meshes.push_back(diablo);
     camera.position = Vec3f(0.f, 0.f, 0.f);
     camera.target = Vec3f(0.01f, 0.01f, 0.01f);
-    device.render(camera, meshes, 90.f);
+    device.render(camera, meshes, 60.f);
     return 0;
 }

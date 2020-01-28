@@ -2,6 +2,7 @@
 #include <utility>
 #include <iterator>
 #include <cstring>
+
 #include "softengine.h"
 #include "matrix.h"
 
@@ -230,6 +231,140 @@ void Device::DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
     DrawLine(p1, p3, color);
 }
 
+int orient2d(const Vec2f& a, const Vec2f& b, const Vec2f& c)
+{
+    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
+}
+
+// Clamping values to keep them between 0 and 1
+float Clamp(float value, float min = 0, float max = 1)
+{
+    return std::max(min, std::min(value, max));
+}
+
+// Interpolating the value between 2 vertices
+// min is the starting point, max the ending point
+// and gradient the % between the 2 points
+float Interpolate(float min, float max, float gradient)
+{
+    return min + (max - min) * Clamp(gradient);
+}
+
+// drawing line between 2 points from left to right
+// papb -> pcpd
+// pa, pb, pc, pd must then be sorted before
+void Device::ProcessScanLine(int y, Vec2f pa, Vec2f pb, Vec2f pc, Vec2f pd, Vec3f color)
+{
+    // Thanks to current Y, we can compute the gradient to compute others values like
+    // the starting X (sx) and ending X (ex) to draw between
+    // if pa.Y == pb.Y or pc.Y == pd.Y, gradient is forced to 1
+    auto gradient1 = pa.y != pb.y ? (y - pa.y) / (pb.y - pa.y) : 1;
+    auto gradient2 = pc.y != pd.y ? (y - pc.y) / (pd.y - pc.y) : 1;
+
+    int sx = (int)Interpolate(pa.x, pb.x, gradient1);
+    int ex = (int)Interpolate(pc.x, pd.x, gradient2);
+
+    // drawing a line from left (sx) to right (ex)
+    for (int x = sx; x < ex; x++)
+    {
+        DrawPoint(Vec2f(x, y), color);
+    }
+}
+
+void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
+
+    // Sorting the points in order to always have this order on screen p1, p2 & p3
+    // with p1 always up (thus having the Y the lowest possible to be near the top screen)
+    // then p2 between p1 & p3
+    if (p1.y > p2.y)
+    {
+        auto temp = p2;
+        p2 = p1;
+        p1 = temp;
+    }
+
+    if (p2.y > p3.y)
+    {
+        auto temp = p2;
+        p2 = p3;
+        p3 = temp;
+    }
+
+    if (p1.y > p2.y)
+    {
+        auto temp = p2;
+        p2 = p1;
+        p1 = temp;
+    }
+
+    // inverse slopes
+    float dP1P2, dP1P3;
+
+    // http://en.wikipedia.org/wiki/Slope
+    // Computing inverse slopes
+    if (p2.y - p1.y > 0)
+        dP1P2 = (p2.x - p1.x) / (p2.y - p1.y);
+    else
+        dP1P2 = 0;
+
+    if (p3.y - p1.y > 0)
+        dP1P3 = (p3.x - p1.x) / (p3.y - p1.y);
+    else
+        dP1P3 = 0;
+
+    // First case where triangles are like that:
+    // P1
+    // -
+    // --
+    // - -
+    // -  -
+    // -   - P2
+    // -  -
+    // - -
+    // -
+    // P3
+    if (dP1P2 > dP1P3)
+    {
+        for (int y = (int)p1.y; y <= (int)p3.y; y++)
+        {
+            if (y < (int)p2.y)
+            {
+                ProcessScanLine(y, p1, p3, p1, p2, color);
+            }
+            else
+            {
+                ProcessScanLine(y, p1, p3, p2, p3, color);
+            }
+        }
+    }
+        // First case where triangles are like that:
+        //       P1
+        //        -
+        //       --
+        //      - -
+        //     -  -
+        // P2 -   -
+        //     -  -
+        //      - -
+        //        -
+        //       P3
+    else
+    {
+        for (int y = (int)p1.y; y <= (int)p3.y; y++)
+        {
+            if (y < (int)p2.y)
+            {
+                ProcessScanLine(y, p1, p2, p1, p3, color);
+            }
+            else
+            {
+                ProcessScanLine(y, p2, p3, p1, p3, color);
+            }
+        }
+    }
+
+}
+
 void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
 
     // Projection Matrix
@@ -314,14 +449,17 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
                 projectedTriangle.vertices[1].y *= 0.5f * (float) height;
                 projectedTriangle.vertices[2].x *= 0.5f * (float) width;
                 projectedTriangle.vertices[2].y *= 0.5f * (float) height;
-                //std::cout << "x: " << projectedTriangle.vertices[0].x << " ; y: " << projectedTriangle.vertices[0].y << "\n";
-                //std::cout << "x: " << projectedTriangle.vertices[1].x << " ; y: " << projectedTriangle.vertices[1].y << "\n";
-                //std::cout << "x: " << projectedTriangle.vertices[2].x << " ; y: " << projectedTriangle.vertices[2].y << "\n";
-                //std::cout << "------------------------\n";
-                DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
+                float color1 = 0.25f + ((float)((rand() % 2000+1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+                float color2 = 0.25f + ((float)((rand() % 2000+1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+                float color3 = 0.25f + ((float)((rand() % 2000+1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+                //DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
+                //             Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
+                //             Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
+                //             Vec3f(color1, color2, color3));
+                FillTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
                              Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
                              Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
-                             Vec3f(1.f, 1.f, 1.f));
+                             Vec3f(color1, color2, color3));
             }
         }
     }
