@@ -42,20 +42,6 @@ tuple
 cmath
 -
 
-/home/kyunichi/Work/University/S8/RDV/Projet/softengine.cpp
-fstream
--
-utility
--
-iterator
--
-cstring
--
-softengine.h
-/home/kyunichi/Work/University/S8/RDV/Projet/softengine.h
-matrix.h
-/home/kyunichi/Work/University/S8/RDV/Projet/matrix.h
-
 /home/kyunichi/Work/University/S8/RDV/Projet/softengine.h
 geometry.h
 /home/kyunichi/Work/University/S8/RDV/Projet/geometry.h

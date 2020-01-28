@@ -365,6 +365,32 @@ void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
 
 }
 
+Vec3f GetColour(float lum)
+{
+    int pixel_bw = (int)(13.0f*lum);
+    switch (pixel_bw)
+    {
+        case 0: return Vec3f(0.f, 0.f, 0.f);
+
+        case 1: return Vec3f(0.08f, 0.08f, 0.08f);
+        case 2: return Vec3f(0.17f, 0.17f, 0.17f);
+        case 3: return Vec3f(0.25f, 0.25f, 0.25f);
+        case 4: return Vec3f(0.33f, 0.33f, 0.33f);;
+
+        case 5: return Vec3f(0.42f, 0.42f, 0.42f);
+        case 6: return Vec3f(0.50f, 0.50f, 0.50f);
+        case 7: return Vec3f(0.58f, 0.58f, 0.58f);
+        case 8: return Vec3f(0.65f, 0.65f, 0.65f);
+
+        case 9:  return Vec3f(0.73f, 0.73f, 0.74);
+        case 10: return Vec3f(0.83f, 0.83f, 0.83f);
+        case 11: return Vec3f(0.92f, 0.92f, 0.92f);
+        case 12: return Vec3f(1.f, 1.f, 1.f);
+    }
+
+    return Vec3f(0.f, 0.f, 0.f);
+}
+
 void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
 
     // Projection Matrix
@@ -382,6 +408,11 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
     projectionMatrix(3,3) = 0.0f;
 
     Matrix matRotZ(4, 4, 0), matRotX(4, 4, 0);
+
+    // Illumination
+    Vec3f light_direction = { 0.0f, 0.0f, -1.0f };
+    float l = sqrtf(light_direction.x*light_direction.x + light_direction.y*light_direction.y + light_direction.z*light_direction.z);
+    light_direction.x /= l; light_direction.y /= l; light_direction.z /= l;
 
     for (auto mesh : meshes) {
 
@@ -433,7 +464,11 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
             if (normal.x * (triTranslated.vertices[0].x - camera.position.x) +
                 normal.y * (triTranslated.vertices[0].y - camera.position.y) +
                 normal.z * (triTranslated.vertices[0].z - camera.position.z) < 0.0f) {
-            //if (normal.z < 0) {
+
+                float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
+
+                Vec3f color = GetColour(dp);
+
                 projectedTriangle.vertices[0] = MultiplyMatrixVector(triTranslated.vertices[0], projectionMatrix);
                 projectedTriangle.vertices[1] = MultiplyMatrixVector(triTranslated.vertices[1], projectionMatrix);
                 projectedTriangle.vertices[2] = MultiplyMatrixVector(triTranslated.vertices[2], projectionMatrix);
@@ -459,7 +494,8 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
                 FillTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
                              Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
                              Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
-                             Vec3f(color1, color2, color3));
+                //             Vec3f(color1, color2, color3));
+                             color);
             }
         }
     }
