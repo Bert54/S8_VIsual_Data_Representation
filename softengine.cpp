@@ -2,6 +2,7 @@
 #include <utility>
 #include <iterator>
 #include <cstring>
+#include <algorithm>
 
 #include "softengine.h"
 #include "matrix.h"
@@ -25,6 +26,9 @@ Triangle::Triangle() {}
 Mesh::Mesh() {
     rotX = 0.0f;
     rotZ = 0.0f;
+    translationX = 0.0f;
+    translationY = 0.0f;
+    translationZ = 0.0f;
 }
 
 Mesh::Mesh(const char *filename, int method) {
@@ -126,6 +130,9 @@ Mesh::Mesh(const char *filename, int method) {
     }
     rotX = 0.0f;
     rotZ = 0.0f;
+    translationX = 0.0f;
+    translationY = 0.0f;
+    translationZ = 0.0f;
 }
 
 void Mesh::setRotation(float rotationX, float rotationZ) {
@@ -133,43 +140,67 @@ void Mesh::setRotation(float rotationX, float rotationZ) {
     rotZ = rotationZ;
 }
 
-Vec3f scalar_product_vectors_3f(Vec3f lhs, Vec3f rhs) {
-    Vec3f result = Vec3f();
-    result.x = lhs.x * rhs.x;
-    result.y = lhs.y * rhs.y;
-    result.z = lhs.z * rhs.z;
-    return result;
+void Mesh::setTranslation(float trX, float trY, float trZ) {
+    translationX = trX;
+    translationY = trY;
+    translationZ = trZ;
 }
 
-Vec3f normalize_vector_3f(Vec3f vector) {
-    float length = sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
-    Vec3f normalized_vector = Vec3f();
-    if (length != 0) {
-        normalized_vector.x = vector.x / length;
-        normalized_vector.y = vector.y / length;
-        normalized_vector.z = vector.z / length;
-    }
-    else {
-        normalized_vector.x = 0;
-        normalized_vector.y = 0;
-        normalized_vector.z = 0;
-    }
-    return normalized_vector;
-}
-
-Vec3f MultiplyMatrixVector(Vec3f v, Matrix m)
+Vec3f MultiplyMatrixVector(Vec4f v, Matrix m)
 {
-    Vec3f out = Vec3f();
-    out.x = v.x * m(0,0) + v.y * m(1,0) + v.z * m(2,0) + m(3,0);
-    out.y = v.x * m(0,1) + v.y * m(1,1) + v.z * m(2,1) + m(3,1);
-    out.z = v.x * m(0,2) + v.y * m(1,2) + v.z * m(2,2) + m(3,2);
-    double w = v.x * m(0,3) + v.y * m(1,3) + v.z * m(2,3) + m(3,3);
+    Vec4f out = Vec4f();
+    out.x = v.x * m(0,0) + v.y * m(1,0) + v.z * m(2,0) + out.w * m(3,0);
+    out.y = v.x * m(0,1) + v.y * m(1,1) + v.z * m(2,1) + out.w * m(3,1);
+    out.z = v.x * m(0,2) + v.y * m(1,2) + v.z * m(2,2) + out.w * m(3,2);
+    out.w = v.x * m(0,3) + v.y * m(1,3) + v.z * m(2,3) + out.w * m(3,3);
+    return Vec3f(out.x, out.y, out.z);
+}
 
-    if (w != 0.0f)
-    {
-        out.x /= w; out.y /= w; out.z /= w;
-    }
-    return out;
+Matrix Matrix_MakeIdentity()
+{
+    Matrix matrix = Matrix(4,4,0);
+    matrix(0,0) = 1.0f;
+    matrix(1,1) = 1.0f;
+    matrix(2,2) = 1.0f;
+    matrix(3,3) = 1.0f;
+    return matrix;
+}
+
+Matrix Matrix_MakeRotationX(float fAngleRad)
+{
+    Matrix matrix = Matrix(4,4,0);
+    matrix(0,0) = 1;
+    matrix(1,1) = cosf(fAngleRad * 0.5f);
+    matrix(1,2) = sinf(fAngleRad * 0.5f);
+    matrix(2,1) = -sinf(fAngleRad * 0.5f);
+    matrix(2,2) = cosf(fAngleRad * 0.5f);
+    matrix(3,3) = 1;
+    return matrix;
+}
+
+Matrix Matrix_MakeRotationZ(float fAngleRad)
+{
+    Matrix matrix = Matrix(4,4,0);
+    matrix(0,0) = cosf(fAngleRad);
+    matrix(0,1) = sinf(fAngleRad);
+    matrix(1,0) = -sinf(fAngleRad);
+    matrix(1,1) = cosf(fAngleRad);
+    matrix(2,2) = 1;
+    matrix(3,3) = 1;
+    return matrix;
+}
+
+Matrix Matrix_MakeTranslation(float x, float y, float z)
+{
+    Matrix matrix = Matrix_MakeIdentity();
+    matrix(3,0) = x;
+    matrix(3,1) = y;
+    matrix(3,2) = z;
+    return matrix;
+}
+
+float Vector_Length(Vec3f vec) {
+    return sqrtf(vec * vec);
 }
 
 void Device::DrawPoint(Vec2f p, Vec3f color) {
@@ -273,9 +304,6 @@ void Device::ProcessScanLine(int y, Vec2f pa, Vec2f pb, Vec2f pc, Vec2f pd, Vec3
 
 void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
 
-    // Sorting the points in order to always have this order on screen p1, p2 & p3
-    // with p1 always up (thus having the Y the lowest possible to be near the top screen)
-    // then p2 between p1 & p3
     if (p1.y > p2.y)
     {
         auto temp = p2;
@@ -296,12 +324,7 @@ void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
         p2 = p1;
         p1 = temp;
     }
-
-    // inverse slopes
     float dP1P2, dP1P3;
-
-    // http://en.wikipedia.org/wiki/Slope
-    // Computing inverse slopes
     if (p2.y - p1.y > 0)
         dP1P2 = (p2.x - p1.x) / (p2.y - p1.y);
     else
@@ -311,18 +334,6 @@ void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
         dP1P3 = (p3.x - p1.x) / (p3.y - p1.y);
     else
         dP1P3 = 0;
-
-    // First case where triangles are like that:
-    // P1
-    // -
-    // --
-    // - -
-    // -  -
-    // -   - P2
-    // -  -
-    // - -
-    // -
-    // P3
     if (dP1P2 > dP1P3)
     {
         for (int y = (int)p1.y; y <= (int)p3.y; y++)
@@ -337,17 +348,6 @@ void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
             }
         }
     }
-        // First case where triangles are like that:
-        //       P1
-        //        -
-        //       --
-        //      - -
-        //     -  -
-        // P2 -   -
-        //     -  -
-        //      - -
-        //        -
-        //       P3
     else
     {
         for (int y = (int)p1.y; y <= (int)p3.y; y++)
@@ -407,8 +407,6 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
     projectionMatrix(2,3) = 1.0f;
     projectionMatrix(3,3) = 0.0f;
 
-    Matrix matRotZ(4, 4, 0), matRotX(4, 4, 0);
-
     // Illumination
     Vec3f light_direction = { 0.0f, 0.0f, -1.0f };
     float l = sqrtf(light_direction.x*light_direction.x + light_direction.y*light_direction.y + light_direction.z*light_direction.z);
@@ -416,36 +414,28 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
 
     for (auto mesh : meshes) {
 
-        // Rotation Z
-        matRotZ(0,0) = cosf(mesh.rotZ);
-        matRotZ(0,1) = sinf(mesh.rotZ);
-        matRotZ(1,0) = -sinf(mesh.rotZ);
-        matRotZ(1,1) = cosf(mesh.rotZ);
-        matRotZ(2,2) = 1;
-        matRotZ(3,3) = 1;
+        Matrix matRotZ = Matrix_MakeRotationZ(mesh.rotZ), matRotX = Matrix_MakeRotationX(mesh.rotX), matTran = Matrix_MakeTranslation(mesh.translationX, mesh.translationY, mesh.translationZ);
 
-        // Rotation X
-        matRotX(0,0) = 1;
-        matRotX(1,1) = cosf(mesh.rotX * 0.5f);
-        matRotX(1,2) = sinf(mesh.rotX * 0.5f);
-        matRotX(2,1) = -sinf(mesh.rotX * 0.5f);
-        matRotX(2,2) = cosf(mesh.rotX * 0.5f);
-        matRotX(3,3) = 1;
+        std::vector<Triangle> trianglesToRaster;
 
-        for (auto tri : mesh.polygons) {
+        for (Triangle tri : mesh.polygons) {
 
             Triangle projectedTriangle = Triangle();
-            Triangle triTranslated, triRotatedZ, triRotatedZX;
+            Triangle triTran, triTranslated, triRotatedZ, triRotatedZX;
 
-            triRotatedZ.vertices[0] = MultiplyMatrixVector(tri.vertices[0], matRotZ);
-            triRotatedZ.vertices[1] = MultiplyMatrixVector(tri.vertices[1], matRotZ);
-            triRotatedZ.vertices[2] = MultiplyMatrixVector(tri.vertices[2], matRotZ);
+            triRotatedZ.vertices[0] = MultiplyMatrixVector(Vec4f(tri.vertices[0].x, tri.vertices[0].y, tri.vertices[0].z, 1), matRotZ);
+            triRotatedZ.vertices[1] = MultiplyMatrixVector(Vec4f(tri.vertices[1].x, tri.vertices[1].y, tri.vertices[1].z, 1), matRotZ);
+            triRotatedZ.vertices[2] = MultiplyMatrixVector(Vec4f(tri.vertices[2].x, tri.vertices[2].y, tri.vertices[2].z, 1), matRotZ);
 
-            triRotatedZX.vertices[0] = MultiplyMatrixVector(triRotatedZ.vertices[0], matRotX);
-            triRotatedZX.vertices[1] = MultiplyMatrixVector(triRotatedZ.vertices[1], matRotX);
-            triRotatedZX.vertices[2] = MultiplyMatrixVector(triRotatedZ.vertices[2], matRotX);
+            triRotatedZX.vertices[0] = MultiplyMatrixVector(Vec4f(triRotatedZ.vertices[0].x, triRotatedZ.vertices[0].y, triRotatedZ.vertices[0].z, 1), matRotX);
+            triRotatedZX.vertices[1] = MultiplyMatrixVector(Vec4f(triRotatedZ.vertices[1].x, triRotatedZ.vertices[1].y, triRotatedZ.vertices[1].z, 1), matRotX);
+            triRotatedZX.vertices[2] = MultiplyMatrixVector(Vec4f(triRotatedZ.vertices[2].x, triRotatedZ.vertices[2].y, triRotatedZ.vertices[2].z, 1), matRotX);
 
-            triTranslated = triRotatedZX;
+            triTran.vertices[0] = MultiplyMatrixVector(Vec4f(triRotatedZX.vertices[0].x, triRotatedZX.vertices[0].y, triRotatedZX.vertices[0].z, 1), matTran);
+            triTran.vertices[1] = MultiplyMatrixVector(Vec4f(triRotatedZX.vertices[1].x, triRotatedZX.vertices[1].y, triRotatedZX.vertices[1].z, 1), matTran);
+            triTran.vertices[2] = MultiplyMatrixVector(Vec4f(triRotatedZX.vertices[2].x, triRotatedZX.vertices[2].y, triRotatedZX.vertices[2].z, 1), matTran);
+
+            triTranslated = triTran;
             triTranslated.vertices[0].z = triRotatedZX.vertices[0].z + 3.0f;
             triTranslated.vertices[1].z = triRotatedZX.vertices[1].z + 3.0f;
             triTranslated.vertices[2].z = triRotatedZX.vertices[2].z + 3.0f;
@@ -467,11 +457,11 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
 
                 float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
 
-                Vec3f color = GetColour(dp);
+                projectedTriangle.color = GetColour(dp);
 
-                projectedTriangle.vertices[0] = MultiplyMatrixVector(triTranslated.vertices[0], projectionMatrix);
-                projectedTriangle.vertices[1] = MultiplyMatrixVector(triTranslated.vertices[1], projectionMatrix);
-                projectedTriangle.vertices[2] = MultiplyMatrixVector(triTranslated.vertices[2], projectionMatrix);
+                projectedTriangle.vertices[0] = MultiplyMatrixVector(Vec4f(triTranslated.vertices[0].x, triTranslated.vertices[0].y, triTranslated.vertices[0].z, 1), projectionMatrix);
+                projectedTriangle.vertices[1] = MultiplyMatrixVector(Vec4f(triTranslated.vertices[1].x, triTranslated.vertices[1].y, triTranslated.vertices[1].z, 1), projectionMatrix);
+                projectedTriangle.vertices[2] = MultiplyMatrixVector(Vec4f(triTranslated.vertices[2].x, triTranslated.vertices[2].y, triTranslated.vertices[2].z, 1), projectionMatrix);
                 projectedTriangle.vertices[0].x += 1.0f;
                 projectedTriangle.vertices[0].y += 1.0f;
                 projectedTriangle.vertices[1].x += 1.0f;
@@ -484,20 +474,40 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
                 projectedTriangle.vertices[1].y *= 0.5f * (float) height;
                 projectedTriangle.vertices[2].x *= 0.5f * (float) width;
                 projectedTriangle.vertices[2].y *= 0.5f * (float) height;
-                float color1 = 0.25f + ((float)((rand() % 2000+1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
-                float color2 = 0.25f + ((float)((rand() % 2000+1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
-                float color3 = 0.25f + ((float)((rand() % 2000+1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
-                //DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
-                //             Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
-                //             Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
-                //             Vec3f(color1, color2, color3));
-                FillTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
-                             Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
-                             Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
-                //             Vec3f(color1, color2, color3));
-                             color);
+
+                trianglesToRaster.push_back(projectedTriangle);
+
             }
         }
+
+        // Sort triangles from back to front
+        sort(trianglesToRaster.begin(), trianglesToRaster.end(), [](Triangle &t1, Triangle &t2)
+        {
+            float z1 = (t1.vertices[0].z + t1.vertices[1].z + t1.vertices[2].z) / 3.0f;
+            float z2 = (t2.vertices[0].z + t2.vertices[1].z + t2.vertices[2].z) / 3.0f;
+            return z1 > z2;
+        });
+
+        for (auto &triProjected : trianglesToRaster)
+        {
+            float color1 =
+                    0.25f + ((float) ((rand() % 2000 + 1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+            float color2 =
+                    0.25f + ((float) ((rand() % 2000 + 1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+            float color3 =
+                    0.25f + ((float) ((rand() % 2000 + 1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+            //DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
+            //             Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
+            //             Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
+            //             Vec3f(color1, color2, color3));
+            FillTriangle(Vec2f(triProjected.vertices[0].x, triProjected.vertices[0].y),
+                         Vec2f(triProjected.vertices[1].x, triProjected.vertices[1].y),
+                         Vec2f(triProjected.vertices[2].x, triProjected.vertices[2].y),
+                    //           Vec3f(color1, color2, color3));
+                         triProjected.color);
+        }
+
+
     }
     std::ofstream ofs; // save the framebuffer to file
     ofs.open("./out.ppm",std::ios::binary);

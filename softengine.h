@@ -14,6 +14,7 @@ namespace SoftEngine {
     class Triangle {
     public:
         Vec3f vertices[3];
+        Vec3f color;
 
         Triangle();
         Triangle(Vec3f, Vec3f, Vec3f);
@@ -31,10 +32,14 @@ namespace SoftEngine {
 
         float rotX;
         float rotZ;
+        float translationX;
+        float translationY;
+        float translationZ;
 
         Mesh();
         Mesh(const char *filename, int method);
         void setRotation(float rotationX, float rotationZ);
+        void setTranslation(float trX, float trY, float trZ);
     };
 
     class Device {
@@ -53,7 +58,6 @@ namespace SoftEngine {
         void DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color);
         void FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color);
         void render(Camera camera, std::vector<Mesh> meshes, float fov);
-
     };
 
 };
