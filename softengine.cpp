@@ -203,6 +203,15 @@ float Vector_Length(Vec3f vec) {
     return sqrtf(vec * vec);
 }
 
+Vec3f Vector_CrossProduct(Vec3f &v1, Vec3f &v2)
+{
+    Vec3f v;
+    v.x = v1.y * v2.z - v1.z * v2.y;
+    v.y = v1.z * v2.x - v1.x * v2.z;
+    v.z = v1.x * v2.y - v1.y * v2.x;
+    return v;
+}
+
 void Device::DrawPoint(Vec2f p, Vec3f color) {
     if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
         int index = ((int) p.x + (int) p.y * width);
@@ -367,28 +376,7 @@ void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
 
 Vec3f GetColour(float lum)
 {
-    int pixel_bw = (int)(13.0f*lum);
-    switch (pixel_bw)
-    {
-        case 0: return Vec3f(0.f, 0.f, 0.f);
-
-        case 1: return Vec3f(0.08f, 0.08f, 0.08f);
-        case 2: return Vec3f(0.17f, 0.17f, 0.17f);
-        case 3: return Vec3f(0.25f, 0.25f, 0.25f);
-        case 4: return Vec3f(0.33f, 0.33f, 0.33f);;
-
-        case 5: return Vec3f(0.42f, 0.42f, 0.42f);
-        case 6: return Vec3f(0.50f, 0.50f, 0.50f);
-        case 7: return Vec3f(0.58f, 0.58f, 0.58f);
-        case 8: return Vec3f(0.65f, 0.65f, 0.65f);
-
-        case 9:  return Vec3f(0.73f, 0.73f, 0.74);
-        case 10: return Vec3f(0.83f, 0.83f, 0.83f);
-        case 11: return Vec3f(0.92f, 0.92f, 0.92f);
-        case 12: return Vec3f(1.f, 1.f, 1.f);
-    }
-
-    return Vec3f(0.f, 0.f, 0.f);
+    return Vec3f(lum, lum, lum);
 }
 
 void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
@@ -415,59 +403,50 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
     for (auto mesh : meshes) {
 
         Matrix matRotZ = Matrix_MakeRotationZ(mesh.rotZ), matRotX = Matrix_MakeRotationX(mesh.rotX), matTran = Matrix_MakeTranslation(mesh.translationX, mesh.translationY, mesh.translationZ);
+        Matrix worldMatrix = Matrix_MakeIdentity();
 
         std::vector<Triangle> trianglesToRaster;
 
         for (Triangle tri : mesh.polygons) {
 
             Triangle projectedTriangle = Triangle();
-            Triangle triTran, triTranslated, triRotatedZ, triRotatedZX;
+            Triangle triTransformed;
 
-            triRotatedZ.vertices[0] = MultiplyMatrixVector(Vec4f(tri.vertices[0].x, tri.vertices[0].y, tri.vertices[0].z, 1), matRotZ);
-            triRotatedZ.vertices[1] = MultiplyMatrixVector(Vec4f(tri.vertices[1].x, tri.vertices[1].y, tri.vertices[1].z, 1), matRotZ);
-            triRotatedZ.vertices[2] = MultiplyMatrixVector(Vec4f(tri.vertices[2].x, tri.vertices[2].y, tri.vertices[2].z, 1), matRotZ);
+            worldMatrix = Matrix_MakeIdentity();
+            worldMatrix = matRotZ * matRotX;
+            worldMatrix = worldMatrix * matTran;
 
-            triRotatedZX.vertices[0] = MultiplyMatrixVector(Vec4f(triRotatedZ.vertices[0].x, triRotatedZ.vertices[0].y, triRotatedZ.vertices[0].z, 1), matRotX);
-            triRotatedZX.vertices[1] = MultiplyMatrixVector(Vec4f(triRotatedZ.vertices[1].x, triRotatedZ.vertices[1].y, triRotatedZ.vertices[1].z, 1), matRotX);
-            triRotatedZX.vertices[2] = MultiplyMatrixVector(Vec4f(triRotatedZ.vertices[2].x, triRotatedZ.vertices[2].y, triRotatedZ.vertices[2].z, 1), matRotX);
+            triTransformed.vertices[0] = MultiplyMatrixVector(Vec4f(tri.vertices[0].x, tri.vertices[0].y, tri.vertices[0].z, 1),worldMatrix);
+            triTransformed.vertices[1] = MultiplyMatrixVector(Vec4f(tri.vertices[1].x, tri.vertices[1].y, tri.vertices[1].z, 1),worldMatrix);
+            triTransformed.vertices[2] = MultiplyMatrixVector(Vec4f(tri.vertices[2].x, tri.vertices[2].y, tri.vertices[2].z, 1),worldMatrix);
 
-            triTran.vertices[0] = MultiplyMatrixVector(Vec4f(triRotatedZX.vertices[0].x, triRotatedZX.vertices[0].y, triRotatedZX.vertices[0].z, 1), matTran);
-            triTran.vertices[1] = MultiplyMatrixVector(Vec4f(triRotatedZX.vertices[1].x, triRotatedZX.vertices[1].y, triRotatedZX.vertices[1].z, 1), matTran);
-            triTran.vertices[2] = MultiplyMatrixVector(Vec4f(triRotatedZX.vertices[2].x, triRotatedZX.vertices[2].y, triRotatedZX.vertices[2].z, 1), matTran);
-
-            triTranslated = triTran;
-            triTranslated.vertices[0].z = triRotatedZX.vertices[0].z + 3.0f;
-            triTranslated.vertices[1].z = triRotatedZX.vertices[1].z + 3.0f;
-            triTranslated.vertices[2].z = triRotatedZX.vertices[2].z + 3.0f;
+            triTransformed.vertices[0].z = triTransformed.vertices[0].z + 3.0f;
+            triTransformed.vertices[1].z = triTransformed.vertices[1].z + 3.0f;
+            triTransformed.vertices[2].z = triTransformed.vertices[2].z + 3.0f;
 
             Vec3f normal, line1, line2;
-            line1 = triTranslated.vertices[1] - triTranslated.vertices[0];
-            line2 = triTranslated.vertices[2] - triTranslated.vertices[0];
+            line1 = triTransformed.vertices[1] - triTransformed.vertices[0];
+            line2 = triTransformed.vertices[2] - triTransformed.vertices[0];
 
-            normal.x = line1.y * line2.z - line1.z * line2.y;
-            normal.y = line1.z * line2.x - line1.x * line2.z;
-            normal.z = line1.x * line2.y - line1.y * line2.x;
+            normal = Vector_CrossProduct(line1, line2).normalize();
 
             float l = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
             normal.x /= l; normal.y /= l; normal.z /= l;
 
-            if (normal.x * (triTranslated.vertices[0].x - camera.position.x) +
-                normal.y * (triTranslated.vertices[0].y - camera.position.y) +
-                normal.z * (triTranslated.vertices[0].z - camera.position.z) < 0.0f) {
+            Vec3f vCameraRay = triTransformed.vertices[0] - camera.position;
 
-                float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
+            if (normal * vCameraRay < 0.0f) {
 
+                float dp = std::max(0.1f, light_direction * normal);
                 projectedTriangle.color = GetColour(dp);
 
-                projectedTriangle.vertices[0] = MultiplyMatrixVector(Vec4f(triTranslated.vertices[0].x, triTranslated.vertices[0].y, triTranslated.vertices[0].z, 1), projectionMatrix);
-                projectedTriangle.vertices[1] = MultiplyMatrixVector(Vec4f(triTranslated.vertices[1].x, triTranslated.vertices[1].y, triTranslated.vertices[1].z, 1), projectionMatrix);
-                projectedTriangle.vertices[2] = MultiplyMatrixVector(Vec4f(triTranslated.vertices[2].x, triTranslated.vertices[2].y, triTranslated.vertices[2].z, 1), projectionMatrix);
-                projectedTriangle.vertices[0].x += 1.0f;
-                projectedTriangle.vertices[0].y += 1.0f;
-                projectedTriangle.vertices[1].x += 1.0f;
-                projectedTriangle.vertices[1].y += 1.0f;
-                projectedTriangle.vertices[2].x += 1.0f;
-                projectedTriangle.vertices[2].y += 1.0f;
+                Vec3f vOffsetView = Vec3f(1,1,0);
+                projectedTriangle.vertices[0] = MultiplyMatrixVector(Vec4f(triTransformed.vertices[0].x, triTransformed.vertices[0].y, triTransformed.vertices[0].z, 1), projectionMatrix);
+                projectedTriangle.vertices[1] = MultiplyMatrixVector(Vec4f(triTransformed.vertices[1].x, triTransformed.vertices[1].y, triTransformed.vertices[1].z, 1), projectionMatrix);
+                projectedTriangle.vertices[2] = MultiplyMatrixVector(Vec4f(triTransformed.vertices[2].x, triTransformed.vertices[2].y, triTransformed.vertices[2].z, 1), projectionMatrix);
+                projectedTriangle.vertices[0] = projectedTriangle.vertices[0] + vOffsetView;
+                projectedTriangle.vertices[1] = projectedTriangle.vertices[1] + vOffsetView;
+                projectedTriangle.vertices[2] = projectedTriangle.vertices[2] + vOffsetView;
                 projectedTriangle.vertices[0].x *= 0.5f * (float) width;
                 projectedTriangle.vertices[0].y *= 0.5f * (float) height;
                 projectedTriangle.vertices[1].x *= 0.5f * (float) width;
