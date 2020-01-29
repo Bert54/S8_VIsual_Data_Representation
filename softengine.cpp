@@ -19,7 +19,7 @@ Device::Device(int width, int height) {
     this->height = height;
     framebuffer = std::vector<Vec3f>(width * height);
     for (int i = 0 ; i < width * height ; i++) {
-        framebuffer[i] = Vec3f(1, 1, 1);
+        framebuffer[i] = Vec3f(0, 0, 0);
     }
 }
 
@@ -157,12 +157,12 @@ void Mesh::setTranslation(float trX, float trY, float trZ) {
 
 Vec3f MultiplyMatrixVector(Vec3f v, Matrix m)
 {
-    Vec4f out = Vec4f();
+    Vec3f out = Vec3f();
     out.x = v.x * m(0,0) + v.y * m(1,0) + v.z * m(2,0) + v.w * m(3,0);
     out.y = v.x * m(0,1) + v.y * m(1,1) + v.z * m(2,1) + v.w * m(3,1);
     out.z = v.x * m(0,2) + v.y * m(1,2) + v.z * m(2,2) + v.w * m(3,2);
     out.w = v.x * m(0,3) + v.y * m(1,3) + v.z * m(2,3) + v.w * m(3,3);
-    return Vec3f(out.x, out.y, out.z);
+    return out;
 }
 
 Matrix Matrix_MakeIdentity()
@@ -334,7 +334,7 @@ void Device::DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color, int side) {
 
 int orient2d(const Vec2f& a, const Vec2f& b, const Vec2f& c)
 {
-    return ((b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x));
+    return (int)((b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x));
 }
 
 // Clamping values to keep them between 0 and 1
@@ -474,8 +474,7 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
 
         for (Triangle tri : mesh.polygons) {
 
-            Triangle projectedTriangle = Triangle();
-            Triangle triTransformed, triViewed;
+            Triangle projectedTriangle, triTransformed, triViewed;
 
             worldMatrix = Matrix_MakeIdentity();
             worldMatrix = matRotZ * matRotY * matRotX;
@@ -496,45 +495,48 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
 
             Vec3f vCameraRay = triTransformed.vertices[0] - camera.position;
 
-            //if (normal * vCameraRay < 0.0f) {
+            if (normal * vCameraRay < 0.0f) {
 
-            float dp = std::max(0.1f, light_direction * normal);
-            projectedTriangle.color = GetColour(dp);
+                float dp = std::max(0.1f, light_direction * normal);
+                projectedTriangle.color = GetColour(dp);
 
-            Vec3f vOffsetView = Vec3f(1,1,0);
+                Vec3f vOffsetView = Vec3f(1, 1, 0);
 
-            triViewed.vertices[0] = MultiplyMatrixVector(triTransformed.vertices[0], viewMatrix);
-            triViewed.vertices[1] = MultiplyMatrixVector(triTransformed.vertices[1], viewMatrix);
-            triViewed.vertices[2] = MultiplyMatrixVector(triTransformed.vertices[2], viewMatrix);
+                triViewed.vertices[0] = MultiplyMatrixVector(triTransformed.vertices[0], viewMatrix);
+                triViewed.vertices[1] = MultiplyMatrixVector(triTransformed.vertices[1], viewMatrix);
+                triViewed.vertices[2] = MultiplyMatrixVector(triTransformed.vertices[2], viewMatrix);
 
-            projectedTriangle.vertices[0] = MultiplyMatrixVector(triViewed.vertices[0], projectionMatrix);
-            projectedTriangle.vertices[1] = MultiplyMatrixVector(triViewed.vertices[1], projectionMatrix);
-            projectedTriangle.vertices[2] = MultiplyMatrixVector(triViewed.vertices[2], projectionMatrix);
+                projectedTriangle.vertices[0] = MultiplyMatrixVector(triViewed.vertices[0], projectionMatrix);
+                projectedTriangle.vertices[1] = MultiplyMatrixVector(triViewed.vertices[1], projectionMatrix);
+                projectedTriangle.vertices[2] = MultiplyMatrixVector(triViewed.vertices[2], projectionMatrix);
 
-            projectedTriangle.vertices[0] = Vector_Div(projectedTriangle.vertices[0], projectedTriangle.vertices[0].w);
-            projectedTriangle.vertices[1] = Vector_Div(projectedTriangle.vertices[1], projectedTriangle.vertices[1].w);
-            projectedTriangle.vertices[2] = Vector_Div(projectedTriangle.vertices[2], projectedTriangle.vertices[2].w);
+                projectedTriangle.vertices[0] = Vector_Div(projectedTriangle.vertices[0],
+                                                           projectedTriangle.vertices[0].w);
+                projectedTriangle.vertices[1] = Vector_Div(projectedTriangle.vertices[1],
+                                                           projectedTriangle.vertices[1].w);
+                projectedTriangle.vertices[2] = Vector_Div(projectedTriangle.vertices[2],
+                                                           projectedTriangle.vertices[2].w);
 
-            projectedTriangle.vertices[0].x *= -1.0f;
-            projectedTriangle.vertices[1].x *= -1.0f;
-            projectedTriangle.vertices[2].x *= -1.0f;
-            projectedTriangle.vertices[0].y *= -1.0f;
-            projectedTriangle.vertices[1].y *= -1.0f;
-            projectedTriangle.vertices[2].y *= -1.0f;
+                projectedTriangle.vertices[0].x *= -1.0f;
+                projectedTriangle.vertices[1].x *= -1.0f;
+                projectedTriangle.vertices[2].x *= -1.0f;
+                projectedTriangle.vertices[0].y *= -1.0f;
+                projectedTriangle.vertices[1].y *= -1.0f;
+                projectedTriangle.vertices[2].y *= -1.0f;
 
-            projectedTriangle.vertices[0] = projectedTriangle.vertices[0] + vOffsetView;
-            projectedTriangle.vertices[1] = projectedTriangle.vertices[1] + vOffsetView;
-            projectedTriangle.vertices[2] = projectedTriangle.vertices[2] + vOffsetView;
-            projectedTriangle.vertices[0].x *= 0.5f * (float) width;
-            projectedTriangle.vertices[0].y *= 0.5f * (float) height;
-            projectedTriangle.vertices[1].x *= 0.5f * (float) width;
-            projectedTriangle.vertices[1].y *= 0.5f * (float) height;
-            projectedTriangle.vertices[2].x *= 0.5f * (float) width;
-            projectedTriangle.vertices[2].y *= 0.5f * (float) height;
+                projectedTriangle.vertices[0] = projectedTriangle.vertices[0] + vOffsetView;
+                projectedTriangle.vertices[1] = projectedTriangle.vertices[1] + vOffsetView;
+                projectedTriangle.vertices[2] = projectedTriangle.vertices[2] + vOffsetView;
+                projectedTriangle.vertices[0].x *= 0.5f * (float) width;
+                projectedTriangle.vertices[0].y *= 0.5f * (float) height;
+                projectedTriangle.vertices[1].x *= 0.5f * (float) width;
+                projectedTriangle.vertices[1].y *= 0.5f * (float) height;
+                projectedTriangle.vertices[2].x *= 0.5f * (float) width;
+                projectedTriangle.vertices[2].y *= 0.5f * (float) height;
 
-            trianglesToRaster.push_back(projectedTriangle);
+                trianglesToRaster.push_back(projectedTriangle);
 
-            //}
+            }
         }
 
         // Sort triangles from back to front
@@ -587,7 +589,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     stbi_write_jpg("out.jpg", width, height, 3, pixmap.data(), 100);
 
     for (int i = 0 ; i < width * height ; i++) {
-        framebuffer[i] = Vec3f(1, 1, 1);
+        framebuffer[i] = Vec3f(0, 0, 0);
     }
 
     camera.position = Vec3f(cameraInit.position.x - CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
@@ -613,7 +615,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     }
 
     for (int i = 0 ; i < width * height ; i++) {
-        framebuffer[i] = Vec3f(1, 1, 1);
+        framebuffer[i] = Vec3f(0, 0, 0);
     }
 
     camera.position = Vec3f(cameraInit.position.x + CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
