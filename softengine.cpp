@@ -10,7 +10,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#define CAMERA_DISTANCE 0.033f
+#define CAMERA_DISTANCE -0.04f
 
 using namespace SoftEngine;
 
@@ -458,6 +458,8 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
     float l = sqrtf(light_direction.x*light_direction.x + light_direction.y*light_direction.y + light_direction.z*light_direction.z);
     light_direction.x /= l; light_direction.y /= l; light_direction.z /= l;
 
+    std::vector<Triangle> trianglesToRaster;
+
     for (auto mesh : meshes) {
 
         Matrix matRotZ = Matrix_MakeRotationZ(mesh.rotZ), matRotX = Matrix_MakeRotationX(mesh.rotX), matTran = Matrix_MakeTranslation(mesh.translationX, mesh.translationY, mesh.translationZ);
@@ -470,7 +472,6 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
         Matrix matCamera = Matrix_PointAt(camera.position, vTarget, vUp);
         Matrix viewMatrix = Matrix_Inverse(matCamera);
 
-        std::vector<Triangle> trianglesToRaster;
 
         for (Triangle tri : mesh.polygons) {
 
@@ -539,7 +540,8 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
             }
         }
 
-        // Sort triangles from back to front
+    }
+    // Sort triangles from back to front
         sort(trianglesToRaster.begin(), trianglesToRaster.end(), [](Triangle &t1, Triangle &t2)
         {
             float z1 = (t1.vertices[0].z + t1.vertices[1].z + t1.vertices[2].z) / 3.0f;
@@ -550,11 +552,11 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
         for (auto &triProjected : trianglesToRaster)
         {
             float color1 =
-                    0.25f + ((float) ((rand() % 2000 + 1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+                    0.25f + ((float) ((rand() % 2000 + 1) % trianglesToRaster.size()) / trianglesToRaster.size()) * 0.75f;
             float color2 =
-                    0.25f + ((float) ((rand() % 2000 + 1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+                    0.25f + ((float) ((rand() % 2000 + 1) % trianglesToRaster.size()) / trianglesToRaster.size()) * 0.75f;
             float color3 =
-                    0.25f + ((float) ((rand() % 2000 + 1) % mesh.verts.size()) / mesh.verts.size()) * 0.75f;
+                    0.25f + ((float) ((rand() % 2000 + 1) % trianglesToRaster.size()) / trianglesToRaster.size()) * 0.75f;
             //DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
             //             Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
             //             Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
@@ -565,9 +567,6 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
                     //           Vec3f(color1, color2, color3));
                          triProjected.color, mode);
         }
-
-
-    }
 }
 
 void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov) {
@@ -589,7 +588,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     stbi_write_jpg("out.jpg", width, height, 3, pixmap.data(), 100);
 
     for (int i = 0 ; i < width * height ; i++) {
-        framebuffer[i] = Vec3f(0, 0, 0);
+        framebuffer[i] = Vec3f(1, 1, 1);
     }
 
     camera.position = Vec3f(cameraInit.position.x - CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
@@ -615,7 +614,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     }
 
     for (int i = 0 ; i < width * height ; i++) {
-        framebuffer[i] = Vec3f(0, 0, 0);
+        framebuffer[i] = Vec3f(1, 1, 1);
     }
 
     camera.position = Vec3f(cameraInit.position.x + CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
