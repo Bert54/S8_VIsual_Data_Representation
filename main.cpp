@@ -18,7 +18,7 @@ int main() {
     meshes.push_back(diablo);
     //meshes.push_back(af_head);
     camera.position = Vec3f(0.f, 0.f, 0.f);
-    camera.target = Vec3f(0.01f, 0.01f, 0.01f);
+    camera.target = Vec3f(0.f, 0.f, 1.f);
     device.render(camera, meshes, 90.f);
     return 0;
 }

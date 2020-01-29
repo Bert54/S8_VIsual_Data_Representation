@@ -16,14 +16,6 @@ cassert
 iostream
 -
 
-/home/kyunichi/Work/University/S8/RDV/Projet/main.cpp
-geometry.h
-/home/kyunichi/Work/University/S8/RDV/Projet/geometry.h
-matrix.h
-/home/kyunichi/Work/University/S8/RDV/Projet/matrix.h
-softengine.h
-/home/kyunichi/Work/University/S8/RDV/Projet/softengine.h
-
 /home/kyunichi/Work/University/S8/RDV/Projet/matrix.h
 stdio.h
 -
@@ -42,7 +34,39 @@ tuple
 cmath
 -
 
+/home/kyunichi/Work/University/S8/RDV/Projet/softengine.cpp
+fstream
+-
+utility
+-
+iterator
+-
+cstring
+-
+algorithm
+-
+softengine.h
+/home/kyunichi/Work/University/S8/RDV/Projet/softengine.h
+matrix.h
+/home/kyunichi/Work/University/S8/RDV/Projet/matrix.h
+stb_image_write.h
+/home/kyunichi/Work/University/S8/RDV/Projet/stb_image_write.h
+
 /home/kyunichi/Work/University/S8/RDV/Projet/softengine.h
 geometry.h
 /home/kyunichi/Work/University/S8/RDV/Projet/geometry.h
+
+/home/kyunichi/Work/University/S8/RDV/Projet/stb_image_write.h
+stdio.h
+-
+stdarg.h
+-
+stdlib.h
+-
+string.h
+-
+math.h
+-
+assert.h
+-
 

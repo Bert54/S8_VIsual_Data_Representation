@@ -102,6 +102,9 @@
 		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/softengine.h">
 			<Option target="Projet"/>
 		</Unit>
+		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/stb_image_write.h">
+			<Option target="Projet"/>
+		</Unit>
 		<Unit filename="/home/kyunichi/Work/University/S8/RDV/Projet/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>

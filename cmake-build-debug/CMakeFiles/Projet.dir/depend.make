@@ -13,4 +13,5 @@ CMakeFiles/Projet.dir/softengine.cpp.o: ../geometry.h
 CMakeFiles/Projet.dir/softengine.cpp.o: ../matrix.h
 CMakeFiles/Projet.dir/softengine.cpp.o: ../softengine.cpp
 CMakeFiles/Projet.dir/softengine.cpp.o: ../softengine.h
+CMakeFiles/Projet.dir/softengine.cpp.o: ../stb_image_write.h
 
