@@ -31,6 +31,7 @@ namespace SoftEngine {
         std::vector<Vec2f> uv;
 
         float rotX;
+        float rotY;
         float rotZ;
         float translationX;
         float translationY;
@@ -38,7 +39,7 @@ namespace SoftEngine {
 
         Mesh();
         Mesh(const char *filename, int method);
-        void setRotation(float rotationX, float rotationZ);
+        void setRotation(float rotationX, float rotationY, float rotationZ);
         void setTranslation(float trX, float trY, float trZ);
     };
 

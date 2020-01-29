@@ -10,7 +10,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#define CAMERA_DISTANCE 0.06f
+#define CAMERA_DISTANCE 0.033f
 
 using namespace SoftEngine;
 
@@ -18,9 +18,9 @@ Device::Device(int width, int height) {
     this->width = width;
     this->height = height;
     framebuffer = std::vector<Vec3f>(width * height);
-    //for (int i = 0 ; i < width * height ; i++) {
-    //    framebuffer[i] = Vec3f(1, 1, 1);
-    //}
+    for (int i = 0 ; i < width * height ; i++) {
+        framebuffer[i] = Vec3f(1, 1, 1);
+    }
 }
 
 Triangle::Triangle(Vec3f v1, Vec3f v2, Vec3f v3) {
@@ -143,8 +143,9 @@ Mesh::Mesh(const char *filename, int method) {
     translationZ = 0.0f;
 }
 
-void Mesh::setRotation(float rotationX, float rotationZ) {
+void Mesh::setRotation(float rotationX, float rotationY, float rotationZ) {
     rotX = rotationX;
+    rotY = rotationY;
     rotZ = rotationZ;
 }
 
@@ -154,7 +155,7 @@ void Mesh::setTranslation(float trX, float trY, float trZ) {
     translationZ = trZ;
 }
 
-Vec3f MultiplyMatrixVector(Vec4f v, Matrix m)
+Vec3f MultiplyMatrixVector(Vec3f v, Matrix m)
 {
     Vec4f out = Vec4f();
     out.x = v.x * m(0,0) + v.y * m(1,0) + v.z * m(2,0) + v.w * m(3,0);
@@ -183,6 +184,18 @@ Matrix Matrix_MakeRotationX(float fAngleRad)
     matrix(2,1) = -sinf(fAngleRad * 0.5f);
     matrix(2,2) = cosf(fAngleRad * 0.5f);
     matrix(3,3) = 1;
+    return matrix;
+}
+
+Matrix Matrix_MakeRotationY(float fAngleRad)
+{
+    Matrix matrix = Matrix(4,4,0);
+    matrix(0,0) = cosf(fAngleRad);
+    matrix(0,2) = sinf(fAngleRad);
+    matrix(2,0) = -sinf(fAngleRad);
+    matrix(1,1) = 1.0f;
+    matrix(2,2) = cosf(fAngleRad);
+    matrix(3,3) = 1.0f;
     return matrix;
 }
 
@@ -264,23 +277,9 @@ void Device::DrawPoint(Vec2f p, Vec3f color, int side) {
     if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
         int index = ((int) p.x + (int) p.y * width);
         if (index < width * height) {
-            if (side == 0) {
-                framebuffer[index].x = color.x;
-                framebuffer[index].y = color.y;
-                framebuffer[index].z = color.z;
-            }
-            else if (side == 1) {
-                float greylevel = color.x + color.y + color.z / 3.f;
-                framebuffer[index].x = greylevel;
-                framebuffer[index].y = 0;
-                framebuffer[index].z = 0;
-            }
-            else {
-                float greylevel = color.x + color.y + color.z / 3.f;
-                framebuffer[index].x = 0;
-                framebuffer[index].y = 0;
-                framebuffer[index].z = greylevel;
-            }
+            framebuffer[index].x = color.x;
+            framebuffer[index].y = color.y;
+            framebuffer[index].z = color.z;
         }
     }
 }
@@ -335,7 +334,7 @@ void Device::DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color, int side) {
 
 int orient2d(const Vec2f& a, const Vec2f& b, const Vec2f& c)
 {
-    return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
+    return ((b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x));
 }
 
 // Clamping values to keep them between 0 and 1
@@ -462,6 +461,7 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
     for (auto mesh : meshes) {
 
         Matrix matRotZ = Matrix_MakeRotationZ(mesh.rotZ), matRotX = Matrix_MakeRotationX(mesh.rotX), matTran = Matrix_MakeTranslation(mesh.translationX, mesh.translationY, mesh.translationZ);
+        Matrix matRotY = Matrix_MakeRotationY(mesh.rotY);
         Matrix worldMatrix = Matrix_MakeIdentity();
 
         Vec3f vUp = Vec3f(0.f, 1.f, 0.f);
@@ -478,16 +478,12 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
             Triangle triTransformed, triViewed;
 
             worldMatrix = Matrix_MakeIdentity();
-            worldMatrix = matRotZ * matRotX;
+            worldMatrix = matRotZ * matRotY * matRotX;
             worldMatrix = worldMatrix * matTran;
 
-            triTransformed.vertices[0] = MultiplyMatrixVector(Vec4f(tri.vertices[0].x, tri.vertices[0].y, tri.vertices[0].z, 1),worldMatrix);
-            triTransformed.vertices[1] = MultiplyMatrixVector(Vec4f(tri.vertices[1].x, tri.vertices[1].y, tri.vertices[1].z, 1),worldMatrix);
-            triTransformed.vertices[2] = MultiplyMatrixVector(Vec4f(tri.vertices[2].x, tri.vertices[2].y, tri.vertices[2].z, 1),worldMatrix);
-
-            //triTransformed.vertices[0].z = triTransformed.vertices[0].z + 3.0f;
-            //triTransformed.vertices[1].z = triTransformed.vertices[1].z + 3.0f;
-            //triTransformed.vertices[2].z = triTransformed.vertices[2].z + 3.0f;
+            triTransformed.vertices[0] = MultiplyMatrixVector(tri.vertices[0], worldMatrix);
+            triTransformed.vertices[1] = MultiplyMatrixVector(tri.vertices[1], worldMatrix);
+            triTransformed.vertices[2] = MultiplyMatrixVector(tri.vertices[2], worldMatrix);
 
             Vec3f normal, line1, line2;
             line1 = triTransformed.vertices[1] - triTransformed.vertices[0];
@@ -507,17 +503,24 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
 
             Vec3f vOffsetView = Vec3f(1,1,0);
 
-            triViewed.vertices[0] = MultiplyMatrixVector(Vec4f(triTransformed.vertices[0].x,triTransformed.vertices[0].y, triTransformed.vertices[0].z, 1), viewMatrix);
-            triViewed.vertices[1] = MultiplyMatrixVector(Vec4f(triTransformed.vertices[1].x ,triTransformed.vertices[1].y, triTransformed.vertices[1].z, 1), viewMatrix);
-            triViewed.vertices[2] = MultiplyMatrixVector(Vec4f(triTransformed.vertices[2].x ,triTransformed.vertices[2].y, triTransformed.vertices[2].z, 1), viewMatrix);
+            triViewed.vertices[0] = MultiplyMatrixVector(triTransformed.vertices[0], viewMatrix);
+            triViewed.vertices[1] = MultiplyMatrixVector(triTransformed.vertices[1], viewMatrix);
+            triViewed.vertices[2] = MultiplyMatrixVector(triTransformed.vertices[2], viewMatrix);
 
-            projectedTriangle.vertices[0] = MultiplyMatrixVector(Vec4f(triViewed.vertices[0].x, triViewed.vertices[0].y, triViewed.vertices[0].z, 1), projectionMatrix);
-            projectedTriangle.vertices[1] = MultiplyMatrixVector(Vec4f(triViewed.vertices[1].x, triViewed.vertices[1].y, triViewed.vertices[1].z, 1), projectionMatrix);
-            projectedTriangle.vertices[2] = MultiplyMatrixVector(Vec4f(triViewed.vertices[2].x, triViewed.vertices[2].y, triViewed.vertices[2].z, 1), projectionMatrix);
+            projectedTriangle.vertices[0] = MultiplyMatrixVector(triViewed.vertices[0], projectionMatrix);
+            projectedTriangle.vertices[1] = MultiplyMatrixVector(triViewed.vertices[1], projectionMatrix);
+            projectedTriangle.vertices[2] = MultiplyMatrixVector(triViewed.vertices[2], projectionMatrix);
 
-            projectedTriangle.vertices[0] = Vector_Div(projectedTriangle.vertices[0], 1);
-            projectedTriangle.vertices[1] = Vector_Div(projectedTriangle.vertices[1], 1);
-            projectedTriangle.vertices[2] = Vector_Div(projectedTriangle.vertices[2], 1);
+            projectedTriangle.vertices[0] = Vector_Div(projectedTriangle.vertices[0], projectedTriangle.vertices[0].w);
+            projectedTriangle.vertices[1] = Vector_Div(projectedTriangle.vertices[1], projectedTriangle.vertices[1].w);
+            projectedTriangle.vertices[2] = Vector_Div(projectedTriangle.vertices[2], projectedTriangle.vertices[2].w);
+
+            projectedTriangle.vertices[0].x *= -1.0f;
+            projectedTriangle.vertices[1].x *= -1.0f;
+            projectedTriangle.vertices[2].x *= -1.0f;
+            projectedTriangle.vertices[0].y *= -1.0f;
+            projectedTriangle.vertices[1].y *= -1.0f;
+            projectedTriangle.vertices[2].y *= -1.0f;
 
             projectedTriangle.vertices[0] = projectedTriangle.vertices[0] + vOffsetView;
             projectedTriangle.vertices[1] = projectedTriangle.vertices[1] + vOffsetView;
@@ -584,10 +587,10 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     stbi_write_jpg("out.jpg", width, height, 3, pixmap.data(), 100);
 
     for (int i = 0 ; i < width * height ; i++) {
-        framebuffer[i] = Vec3f(0, 0, 0);
+        framebuffer[i] = Vec3f(1, 1, 1);
     }
 
-    camera.position = Vec3f(cameraInit.position.x + CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
+    camera.position = Vec3f(cameraInit.position.x - CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
     camera.target = cameraInit.target;
 
     render(camera, meshes, fov, 1);
@@ -610,10 +613,10 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     }
 
     for (int i = 0 ; i < width * height ; i++) {
-        framebuffer[i] = Vec3f(0, 0, 0);
+        framebuffer[i] = Vec3f(1, 1, 1);
     }
 
-    camera.position = Vec3f(cameraInit.position.x - CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
+    camera.position = Vec3f(cameraInit.position.x + CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
     camera.target = cameraInit.target;
 
     render(camera, meshes, fov, 2);
@@ -625,7 +628,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
         //float max = std::max(c[0], std::max(c[1], c[2]));
         //if (max>1) c = c*(1./max);
         for (size_t j = 0; j<3; j++) {
-            if (j != 0) {
+            if (j == 2) {
                 pixmap_r[i*3+j] = (unsigned char)(255 * std::max(0.f, std::min(1.f, grey_level)));
             }
             else {
