@@ -273,7 +273,7 @@ Matrix Matrix_PointAt(Vec3f &pos, Vec3f &target, Vec3f &up)
 
 }
 
-void Device::DrawPoint(Vec2f p, Vec3f color, int side) {
+void Device::DrawPoint(Vec2f p, Vec3f color) {
     if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
         int index = ((int) p.x + (int) p.y * width);
         if (index < width * height) {
@@ -284,7 +284,7 @@ void Device::DrawPoint(Vec2f p, Vec3f color, int side) {
     }
 }
 
-void Device::DrawLine(Vec2f p1, Vec2f p2, Vec3f color, int side) {
+void Device::DrawLine(Vec2f p1, Vec2f p2, Vec3f color) {
     const bool steep = (fabs(p2.y - p1.y) > fabs(p2.x - p1.x));
     if(steep)
     {
@@ -310,11 +310,11 @@ void Device::DrawLine(Vec2f p1, Vec2f p2, Vec3f color, int side) {
     {
         if(steep)
         {
-            DrawPoint(Vec2f(y, x), color, side);
+            DrawPoint(Vec2f(y, x), color);
         }
         else
         {
-            DrawPoint(Vec2f(x, y), color, side);
+            DrawPoint(Vec2f(x, y), color);
         }
 
         error -= dy;
@@ -326,10 +326,10 @@ void Device::DrawLine(Vec2f p1, Vec2f p2, Vec3f color, int side) {
     }
 }
 
-void Device::DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color, int side) {
-    DrawLine(p1, p2, color, side);
-    DrawLine(p2, p3, color, side);
-    DrawLine(p1, p3, color, side);
+void Device::DrawTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
+    DrawLine(p1, p2, color);
+    DrawLine(p2, p3, color);
+    DrawLine(p1, p3, color);
 }
 
 int orient2d(const Vec2f& a, const Vec2f& b, const Vec2f& c)
@@ -354,7 +354,7 @@ float Interpolate(float min, float max, float gradient)
 // drawing line between 2 points from left to right
 // papb -> pcpd
 // pa, pb, pc, pd must then be sorted before
-void Device::ProcessScanLine(int y, Vec2f pa, Vec2f pb, Vec2f pc, Vec2f pd, Vec3f color, int side)
+void Device::ProcessScanLine(int y, Vec2f pa, Vec2f pb, Vec2f pc, Vec2f pd, Vec3f color)
 {
     // Thanks to current Y, we can compute the gradient to compute others values like
     // the starting X (sx) and ending X (ex) to draw between
@@ -368,11 +368,11 @@ void Device::ProcessScanLine(int y, Vec2f pa, Vec2f pb, Vec2f pc, Vec2f pd, Vec3
     // drawing a line from left (sx) to right (ex)
     for (int x = sx; x < ex; x++)
     {
-        DrawPoint(Vec2f(x, y), color, side);
+        DrawPoint(Vec2f(x, y), color);
     }
 }
 
-void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color, int side) {
+void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color) {
 
     if (p1.y > p2.y)
     {
@@ -410,11 +410,11 @@ void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color, int side) {
         {
             if (y < (int)p2.y)
             {
-                ProcessScanLine(y, p1, p3, p1, p2, color, side);
+                ProcessScanLine(y, p1, p3, p1, p2, color);
             }
             else
             {
-                ProcessScanLine(y, p1, p3, p2, p3, color, side);
+                ProcessScanLine(y, p1, p3, p2, p3, color);
             }
         }
     }
@@ -424,11 +424,11 @@ void Device::FillTriangle(Vec2f p1, Vec2f p2, Vec2f p3, Vec3f color, int side) {
         {
             if (y < (int)p2.y)
             {
-                ProcessScanLine(y, p1, p2, p1, p3, color, side);
+                ProcessScanLine(y, p1, p2, p1, p3, color);
             }
             else
             {
-                ProcessScanLine(y, p2, p3, p1, p3, color, side);
+                ProcessScanLine(y, p2, p3, p1, p3, color);
             }
         }
     }
@@ -440,7 +440,7 @@ Vec3f GetColour(float lum)
     return Vec3f(lum, lum, lum);
 }
 
-void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode) {
+void Device::render(Camera camera, std::vector<Mesh> meshes, float fov) {
 
     float fNear = 0.1f;
     float fFar = 1000.0f;
@@ -557,15 +557,15 @@ void Device::render(Camera camera, std::vector<Mesh> meshes, float fov, int mode
                     0.25f + ((float) ((rand() % 2000 + 1) % trianglesToRaster.size()) / trianglesToRaster.size()) * 0.75f;
             float color3 =
                     0.25f + ((float) ((rand() % 2000 + 1) % trianglesToRaster.size()) / trianglesToRaster.size()) * 0.75f;
-            //DrawTriangle(Vec2f(projectedTriangle.vertices[0].x, projectedTriangle.vertices[0].y),
-            //             Vec2f(projectedTriangle.vertices[1].x, projectedTriangle.vertices[1].y),
-            //             Vec2f(projectedTriangle.vertices[2].x, projectedTriangle.vertices[2].y),
-            //             Vec3f(color1, color2, color3));
+            /**DrawTriangle(Vec2f(triProjected.vertices[0].x, triProjected.vertices[0].y),
+                         Vec2f(triProjected.vertices[1].x, triProjected.vertices[1].y),
+                         Vec2f(triProjected.vertices[2].x, triProjected.vertices[2].y),
+                         Vec3f(color1, color2, color3));*/
             FillTriangle(Vec2f(triProjected.vertices[0].x, triProjected.vertices[0].y),
                          Vec2f(triProjected.vertices[1].x, triProjected.vertices[1].y),
                          Vec2f(triProjected.vertices[2].x, triProjected.vertices[2].y),
                     //           Vec3f(color1, color2, color3));
-                         triProjected.color, mode);
+                         triProjected.color);
         }
 }
 
@@ -574,7 +574,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     Camera camera = Camera();
     camera = cameraInit;
 
-    render(camera, meshes, fov, 0);
+    render(camera, meshes, fov);
 
     std::vector<unsigned char> pixmap(width*height*3);
     for (size_t i = 0; i < height*width; ++i) {
@@ -594,7 +594,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     camera.position = Vec3f(cameraInit.position.x - CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
     camera.target = cameraInit.target;
 
-    render(camera, meshes, fov, 1);
+    render(camera, meshes, fov);
 
     std::vector<unsigned char> pixmap_l(width*height*3);
     for (size_t i = 0; i < height*width; ++i) {
@@ -620,7 +620,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
     camera.position = Vec3f(cameraInit.position.x + CAMERA_DISTANCE, cameraInit.position.y, cameraInit.position.z);
     camera.target = cameraInit.target;
 
-    render(camera, meshes, fov, 2);
+    render(camera, meshes, fov);
 
     std::vector<unsigned char> pixmap_r(width*height*3);
     for (size_t i = 0; i < height*width; ++i) {
@@ -629,7 +629,7 @@ void Device::render_prep(Camera cameraInit, std::vector<Mesh> meshes, float fov)
         //float max = std::max(c[0], std::max(c[1], c[2]));
         //if (max>1) c = c*(1./max);
         for (size_t j = 0; j<3; j++) {
-            if (j == 2) {
+            if (j != 0) {
                 pixmap_r[i*3+j] = (unsigned char)(255 * std::max(0.f, std::min(1.f, grey_level)));
             }
             else {
